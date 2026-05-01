@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { getRestaurant, getReviews } from '../api/restaurants'
-import { claimRestaurant } from '../api/owner'
+import { claimRestaurant } from '../store/slices/ownerSlice'
 import { useAuth } from '../contexts/AuthContext'
 import Spinner from '../components/ui/Spinner'
 import ReviewCard from '../components/reviews/ReviewCard'
@@ -23,6 +24,7 @@ function formatHour(value) {
 export default function RestaurantPage() {
   const { id } = useParams()
   const { user } = useAuth()
+  const dispatch = useDispatch()
   const [restaurant, setRestaurant] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,10 +74,10 @@ export default function RestaurantPage() {
   const handleClaim = async () => {
     setClaimState({ loading: true, message: '', error: '' })
     try {
-      await claimRestaurant(id)
+      await dispatch(claimRestaurant(id)).unwrap()
       setClaimState({ loading: false, message: 'Restaurant claimed. Open Owner Dashboard to manage it.', error: '' })
     } catch (error) {
-      setClaimState({ loading: false, message: '', error: error.response?.data?.detail || 'Could not claim restaurant.' })
+      setClaimState({ loading: false, message: '', error: typeof error === 'string' ? error : 'Could not claim restaurant.' })
     }
   }
 

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createOwnedRestaurant } from '../api/owner'
+import { useDispatch } from 'react-redux'
+import { createOwnedRestaurant } from '../store/slices/ownerSlice'
 import Spinner from '../components/ui/Spinner'
 
 export default function OwnerNewRestaurantPage() {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [form, setForm] = useState({ name: '', address: '', city: '', state: '', zip_code: '', phone: '', website: '', cuisine_type: '', price_range: '', description: '' })
   const [files, setFiles] = useState([])
   const [submitting, setSubmitting] = useState(false)
@@ -21,11 +23,10 @@ export default function OwnerNewRestaurantPage() {
       const fd = new FormData()
       Object.entries(form).forEach(([k, v]) => { if (v != null) fd.append(k, v) })
       files.forEach((f) => fd.append('photos', f))
-      const { data } = await createOwnedRestaurant(fd)
-      // on success, navigate to owner restaurant page
+      const data = await dispatch(createOwnedRestaurant(fd)).unwrap()
       navigate(`/owner/restaurants/${data.id}`)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create restaurant')
+      setError(typeof err === 'string' ? err : 'Failed to create restaurant')
     } finally {
       setSubmitting(false)
     }

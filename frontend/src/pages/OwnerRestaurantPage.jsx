@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getOwnerRestaurantDashboard, updateOwnedRestaurant } from '../api/owner'
-import { uploadOwnedRestaurantPhotos, deleteOwnedRestaurantPhoto, updateOwnedRestaurantHours } from '../api/owner'
+import { useDispatch } from 'react-redux'
+import {
+  fetchOwnerRestaurantDashboard,
+  updateOwnedRestaurant,
+  uploadOwnedRestaurantPhotos,
+  deleteOwnedRestaurantPhoto,
+  updateOwnedRestaurantHours,
+} from '../store/slices/ownerSlice'
 import Spinner from '../components/ui/Spinner'
 
 function BreakdownBar({ label, value, total }) {
@@ -19,6 +25,7 @@ function BreakdownBar({ label, value, total }) {
 
 export default function OwnerRestaurantPage() {
   const { id } = useParams()
+  const dispatch = useDispatch()
   const [dashboard, setDashboard] = useState(null)
   const [form, setForm] = useState({ description: '', phone: '', website: '', price_range: '', image_url: '', address: '', city: '', state: '', zip_code: '' })
   const [photoFiles, setPhotoFiles] = useState([])
@@ -31,20 +38,20 @@ export default function OwnerRestaurantPage() {
   const loadDashboard = async () => {
     setLoading(true)
     try {
-      const response = await getOwnerRestaurantDashboard(id)
-      setDashboard(response.data)
+      const data = await dispatch(fetchOwnerRestaurantDashboard(id)).unwrap()
+      setDashboard(data)
       setForm({
-        description: response.data.restaurant.description || '',
-        phone: response.data.restaurant.phone || '',
-        website: response.data.restaurant.website || '',
-        price_range: response.data.restaurant.price_range || '',
-        image_url: response.data.restaurant.image_url || response.data.restaurant.primary_photo || '',
-        address: response.data.restaurant.address || '',
-        city: response.data.restaurant.city || '',
-        state: response.data.restaurant.state || '',
-        zip_code: response.data.restaurant.zip_code || '',
+        description: data.restaurant.description || '',
+        phone: data.restaurant.phone || '',
+        website: data.restaurant.website || '',
+        price_range: data.restaurant.price_range || '',
+        image_url: data.restaurant.image_url || data.restaurant.primary_photo || '',
+        address: data.restaurant.address || '',
+        city: data.restaurant.city || '',
+        state: data.restaurant.state || '',
+        zip_code: data.restaurant.zip_code || '',
       })
-      setHoursForm(response.data.restaurant.hours || [])
+      setHoursForm(data.restaurant.hours || [])
     } finally {
       setLoading(false)
     }
@@ -59,14 +66,14 @@ export default function OwnerRestaurantPage() {
     setSaving(true)
     setMessage('')
     try {
-      await updateOwnedRestaurant(id, form)
+      await dispatch(updateOwnedRestaurant({ id, data: form })).unwrap()
       setMessage('Restaurant updated successfully.')
       await loadDashboard()
     } finally {
       setSaving(false)
     }
   }
-  
+
   const onPhotoFiles = (e) => setPhotoFiles(Array.from(e.target.files || []))
 
   const uploadPhotos = async () => {
@@ -75,7 +82,7 @@ export default function OwnerRestaurantPage() {
     try {
       const fd = new FormData()
       photoFiles.forEach((f) => fd.append('photos', f))
-      await uploadOwnedRestaurantPhotos(id, fd)
+      await dispatch(uploadOwnedRestaurantPhotos({ id, formData: fd })).unwrap()
       setPhotoFiles([])
       await loadDashboard()
     } catch (err) {
@@ -87,7 +94,7 @@ export default function OwnerRestaurantPage() {
 
   const removePhoto = async (photoId) => {
     try {
-      await deleteOwnedRestaurantPhoto(id, photoId)
+      await dispatch(deleteOwnedRestaurantPhoto({ id, photoId })).unwrap()
       await loadDashboard()
     } catch (err) {
       // TODO: show error
@@ -96,7 +103,7 @@ export default function OwnerRestaurantPage() {
 
   const saveHours = async () => {
     try {
-      await updateOwnedRestaurantHours(id, hoursForm)
+      await dispatch(updateOwnedRestaurantHours({ id, data: hoursForm })).unwrap()
       await loadDashboard()
     } catch (err) {
       // TODO: show error

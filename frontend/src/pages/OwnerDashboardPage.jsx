@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getOwnerDashboard } from '../api/owner'
+import { useDispatch } from 'react-redux'
+import { fetchOwnerDashboard } from '../store/slices/ownerSlice'
 import { useAuth } from '../contexts/AuthContext'
 import Spinner from '../components/ui/Spinner'
 import RestaurantCard from '../components/restaurants/RestaurantCard'
@@ -16,14 +17,15 @@ function StatCard({ label, value }) {
 
 export default function OwnerDashboardPage() {
   const { user } = useAuth()
+  const dispatch = useDispatch()
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const loadDashboard = async () => {
     setLoading(true)
     try {
-      const response = await getOwnerDashboard()
-      setDashboard(response.data)
+      const data = await dispatch(fetchOwnerDashboard()).unwrap()
+      setDashboard(data)
     } finally {
       setLoading(false)
     }
