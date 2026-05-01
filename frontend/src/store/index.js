@@ -11,4 +11,5 @@ export const store = configureStore({
     reviews: reviewsReducer,
     favourites: favouritesReducer,
   },
+  devTools: true,
 })
