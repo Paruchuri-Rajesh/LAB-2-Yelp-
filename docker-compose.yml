@@ -1,0 +1,127 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    restart: unless-stopped
+    depends_on: [mongo]
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: "27017"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on: [zookeeper]
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    restart: unless-stopped
+    depends_on: [kafka]
+    ports:
+      - "8088:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: yelp-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  user-api:
+    build:
+      context: ./backend
+      dockerfile: ../services/user-api/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: &api_env
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: yelp_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      ALLOWED_ORIGINS: '["http://localhost","http://localhost:5173","http://localhost:8080","http://localhost:8090","http://54.67.31.133","http://54.67.31.133:8090"]'
+
+  owner-api:
+    build:
+      context: ./backend
+      dockerfile: ../services/owner-api/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  restaurant-api:
+    build:
+      context: ./backend
+      dockerfile: ../services/restaurant-api/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  review-api:
+    build:
+      context: ./backend
+      dockerfile: ../services/review-api/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  ai-api:
+    build:
+      context: ./backend
+      dockerfile: ../services/ai-api/Dockerfile
+    depends_on: [mongo]
+    environment:
+      <<: *api_env
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+
+  review-worker:
+    build:
+      context: ./backend
+      dockerfile: ../workers/review-worker/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  restaurant-worker:
+    build:
+      context: ./backend
+      dockerfile: ../workers/restaurant-worker/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  user-worker:
+    build:
+      context: ./backend
+      dockerfile: ../workers/user-worker/Dockerfile
+    depends_on: [mongo, kafka]
+    environment: *api_env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on: [user-api, owner-api, restaurant-api, review-api, ai-api]
+    ports:
+      - "8090:80"
+
+volumes:
+  mongo_data:

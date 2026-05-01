@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-api
+  namespace: yelp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: user-api }
+  template:
+    metadata:
+      labels: { app: user-api }
+    spec:
+      containers:
+        - name: user-api
+          image: yelp/user-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: yelp-config }
+            - secretRef: { name: yelp-secrets }
+          env:
+            - { name: SERVICE_NAME, value: user-api }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-api
+  namespace: yelp
+spec:
+  selector: { app: user-api }
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owner-api
+  namespace: yelp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: owner-api }
+  template:
+    metadata:
+      labels: { app: owner-api }
+    spec:
+      containers:
+        - name: owner-api
+          image: yelp/owner-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: yelp-config }
+            - secretRef: { name: yelp-secrets }
+          env:
+            - { name: SERVICE_NAME, value: owner-api }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: owner-api
+  namespace: yelp
+spec:
+  selector: { app: owner-api }
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurant-api
+  namespace: yelp
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: restaurant-api }
+  template:
+    metadata:
+      labels: { app: restaurant-api }
+    spec:
+      containers:
+        - name: restaurant-api
+          image: yelp/restaurant-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: yelp-config }
+            - secretRef: { name: yelp-secrets }
+          env:
+            - { name: SERVICE_NAME, value: restaurant-api }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-api
+  namespace: yelp
+spec:
+  selector: { app: restaurant-api }
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-api
+  namespace: yelp
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: review-api }
+  template:
+    metadata:
+      labels: { app: review-api }
+    spec:
+      containers:
+        - name: review-api
+          image: yelp/review-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: { name: yelp-config }
+            - secretRef: { name: yelp-secrets }
+          env:
+            - { name: SERVICE_NAME, value: review-api }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-api
+  namespace: yelp
+spec:
+  selector: { app: review-api }
+  ports:
+    - port: 8000
+      targetPort: 8000
