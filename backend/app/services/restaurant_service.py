@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 
 from app.database import get_db
 from app.models import doc_out, to_object_id
+from app.services import yelp_client
 
 
 def _photos_primary(photos: list[dict] | None) -> str | None:
@@ -113,6 +114,21 @@ async def search_restaurants(
     radius_miles: float | None = None,
 ) -> tuple[list[dict], int]:
     db = get_db()
+
+    if page == 1:
+        await yelp_client.search_and_cache(
+            term=q,
+            location=location or city or "San Jose, CA",
+            latitude=latitude,
+            longitude=longitude,
+            radius_meters=int(radius_miles * 1609) if radius_miles else None,
+            categories=cuisine,
+            price=yelp_client.yelp_price(price_range),
+            sort_by=yelp_client.yelp_sort(sort_by),
+            open_now=open_now,
+            limit=50,
+        )
+
     mongo_filter = _build_search_filter(
         q, cuisine, location, city, price_range, min_rating,
         offers_delivery, offers_takeout, has_reservations,
@@ -152,8 +168,15 @@ async def get_restaurant_by_id(restaurant_id: str) -> dict | None:
     oid = to_object_id(restaurant_id)
     if not oid:
         return None
-    doc = await get_db().restaurants.find_one({"_id": oid, "is_closed": {"$ne": True}})
-    return _shape_restaurant(doc) if doc else None
+    db = get_db()
+    doc = await db.restaurants.find_one({"_id": oid, "is_closed": {"$ne": True}})
+    if not doc:
+        return None
+    yelp_id = doc.get("yelp_id")
+    if yelp_id and yelp_client.is_stale(doc):
+        if await yelp_client.refresh_one(yelp_id):
+            doc = await db.restaurants.find_one({"_id": oid}) or doc
+    return _shape_restaurant(doc)
 
 
 async def record_restaurant_view(restaurant_id: str, viewer_user_id: str | None = None) -> None:

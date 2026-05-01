@@ -61,6 +61,7 @@ services:
       MONGO_DB: yelp_db
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      YELP_API_KEY: ${YELP_API_KEY:-}
       ALLOWED_ORIGINS: '["http://localhost","http://localhost:5173","http://localhost:8080","http://localhost:8090","http://54.67.31.133","http://54.67.31.133:8090"]'
 
   owner-api:

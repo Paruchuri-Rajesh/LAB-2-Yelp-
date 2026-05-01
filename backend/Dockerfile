@@ -15,6 +15,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY app ./app
 COPY seed_mongo.py ./seed_mongo.py
+COPY fetch_yelp.py ./fetch_yelp.py
 COPY yelp ./yelp
 
 EXPOSE 8000
